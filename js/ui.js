@@ -1,6 +1,165 @@
+class Toaster {
+    constructor() {
+        this.container = null;
+        this.toasts = new Map();
+        this.toastId = 0;
+        this.init();
+    }
+
+    init() {
+        this.createContainer();
+    }
+
+    createContainer() {
+        if (this.container) return;
+
+        this.container = document.createElement('div');
+        this.container.className = 'toaster-container';
+        this.container.setAttribute('aria-live', 'polite');
+        this.container.setAttribute('aria-label', 'Notifications');
+        document.body.appendChild(this.container);
+    }
+
+    show(type = 'info', title, message, options = {}) {
+        const {
+            duration = type === 'error' ? 7000 : 4000,
+            closable = true,
+            persistent = false
+        } = options;
+
+        const toastId = ++this.toastId;
+        const toast = this.createToastElement(type, title, message, toastId, closable);
+
+        this.container.appendChild(toast);
+        this.toasts.set(toastId, toast);
+
+        requestAnimationFrame(() => {
+            toast.style.opacity = '1';
+            toast.style.transform = 'translateX(0)';
+        });
+
+        if (!persistent && duration > 0) {
+            this.setupAutoDismiss(toastId, duration);
+        }
+
+        return toastId;
+    }
+
+    createToastElement(type, title, message, toastId, closable) {
+        const toast = document.createElement('div');
+        toast.className = `toast ${type}`;
+        toast.setAttribute('role', 'alert');
+        toast.setAttribute('aria-live', 'assertive');
+
+        const icons = {
+            success: 'fas fa-check-circle',
+            error: 'fas fa-exclamation-circle',
+            warning: 'fas fa-exclamation-triangle',
+            info: 'fas fa-info-circle'
+        };
+
+        toast.innerHTML = `
+            <div class="toast-icon">
+                <i class="${icons[type] || icons.info}"></i>
+            </div>
+            <div class="toast-content">
+                ${title ? `<div class="toast-title">${this.escapeHtml(title)}</div>` : ''}
+                ${message ? `<div class="toast-message">${this.escapeHtml(message)}</div>` : ''}
+            </div>
+            ${closable ? `
+                <button class="toast-close" type="button" aria-label="Close notification">
+                    <i class="fas fa-times"></i>
+                </button>
+            ` : ''}
+            <div class="toast-progress"></div>
+        `;
+
+        if (closable) {
+            const closeBtn = toast.querySelector('.toast-close');
+            closeBtn.addEventListener('click', () => this.dismiss(toastId));
+        }
+
+        return toast;
+    }
+
+    setupAutoDismiss(toastId, duration) {
+        const toast = this.toasts.get(toastId);
+        if (!toast) return;
+
+        const progressBar = toast.querySelector('.toast-progress');
+        if (progressBar) {
+            progressBar.style.width = '100%';
+            progressBar.style.transitionDuration = `${duration}ms`;
+
+            requestAnimationFrame(() => {
+                progressBar.style.width = '0%';
+            });
+        }
+
+        setTimeout(() => {
+            this.dismiss(toastId);
+        }, duration);
+    }
+
+    dismiss(toastId) {
+        const toast = this.toasts.get(toastId);
+        if (!toast) return;
+
+        toast.classList.add('removing');
+
+        setTimeout(() => {
+            if (toast.parentNode) {
+                toast.parentNode.removeChild(toast);
+            }
+            this.toasts.delete(toastId);
+        }, 300);
+    }
+
+    dismissAll() {
+        this.toasts.forEach((_, toastId) => {
+            this.dismiss(toastId);
+        });
+    }
+
+    success(title, message, options) {
+        return this.show('success', title, message, options);
+    }
+
+    error(title, message, options) {
+        return this.show('error', title, message, options);
+    }
+
+    warning(title, message, options) {
+        return this.show('warning', title, message, options);
+    }
+
+    info(title, message, options) {
+        return this.show('info', title, message, options);
+    }
+
+    escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    getActiveToasts() {
+        return this.toasts.size;
+    }
+
+    destroy() {
+        this.dismissAll();
+        if (this.container && this.container.parentNode) {
+            this.container.parentNode.removeChild(this.container);
+            this.container = null;
+        }
+    }
+}
+
 class GameUI {
     constructor() {
         this.elements = {};
+        this.toaster = new Toaster();
         this.init();
     }
 
@@ -25,12 +184,14 @@ class GameUI {
 
             livesDisplay: document.getElementById('livesDisplay'),
             scoreDisplay: document.getElementById('scoreDisplay'),
+            guessedDisplay: document.getElementById('guessedDisplay'),
 
             virtualKeyboard: document.getElementById('virtualKeyboard'),
 
             newGameBtn: document.getElementById('newGameBtn'),
             hintBtn: document.getElementById('hintBtn'),
             soundToggle: document.getElementById('soundToggle'),
+            testToastBtn: document.getElementById('testToastBtn'),
 
             gameMessage: document.getElementById('gameMessage'),
             messageTitle: document.getElementById('messageTitle'),
@@ -65,14 +226,20 @@ class GameUI {
                     const success = window.wordPuzzleGame.useHint();
                     if (!success) {
                         if (window.wordPuzzleGame.lives >= 2) {
-                            this.showTemporaryMessage('Hints zijn alleen beschikbaar met minder dan 2 levens!', 3000);
+                            this.showWarning('Hint Niet Beschikbaar', 'Hints zijn alleen beschikbaar met minder dan 2 levens!');
                         } else {
-                            this.showTemporaryMessage('Geen hints beschikbaar!', 2000);
+                            this.showWarning('Geen Hints', 'Er zijn momenteel geen hints beschikbaar!');
                         }
                     } else {
-                        this.showTemporaryMessage('Hint gebruikt! Letter onthuld 💡', 2000);
+                        this.showSuccess('Hint Gebruikt!', 'Een letter is onthuld 💡');
                     }
                 }
+            });
+        }
+
+        if (this.elements.testToastBtn) {
+            this.elements.testToastBtn.addEventListener('click', () => {
+                this.showTestToasts();
             });
         }
 
@@ -136,6 +303,8 @@ class GameUI {
         this.updateHintText(gameStatus);
 
         this.updateHintButton(gameStatus);
+
+        this.updateGuessedDisplay(gameStatus);
     }
 
     updateWordDisplay(gameStatus) {
@@ -230,8 +399,6 @@ class GameUI {
 
     updateHintText(gameStatus) {
         if (!this.elements.wordHint) return;
-        const totalWords = (gameStatus.currentWords && gameStatus.currentWords.length) || 0;
-        const guessedCount = gameStatus.correctLetters.length;
 
         if (gameStatus.gameState === 'playing') {
             this.elements.wordHint.textContent = `Raad het woord!`;
@@ -262,6 +429,26 @@ class GameUI {
                 this.elements.hintBtn.innerHTML = '<i class="fas fa-lightbulb"></i> Hint';
             }
         }
+    }
+
+    updateGuessedDisplay(gameStatus) {
+        if (!this.elements.guessedDisplay) return;
+
+        const totalWords = gameStatus.currentWords ? gameStatus.currentWords.length : 0;
+        let completedWords = 0;
+
+        if (gameStatus.currentWords && gameStatus.revealedLettersPerWord) {
+            completedWords = gameStatus.currentWords.reduce((count, word, i) => {
+                const unique = Array.from(new Set(word.split('')));
+                const isComplete = unique.every(ch =>
+                    gameStatus.revealedLettersPerWord[i] &&
+                    gameStatus.revealedLettersPerWord[i].includes(ch)
+                );
+                return count + (isComplete ? 1 : 0);
+            }, 0);
+        }
+
+        this.elements.guessedDisplay.textContent = `${completedWords}/${totalWords}`;
     }
 
     updateSoundButton(soundEnabled) {
@@ -305,35 +492,43 @@ class GameUI {
         }
     }
 
-    showTemporaryMessage(text, duration = 3000) {
-        const tempMessage = document.createElement('div');
-        tempMessage.className = 'temp-message';
-        tempMessage.textContent = text;
-        tempMessage.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 15px 25px;
-            border-radius: 10px;
-            z-index: 9999;
-            font-size: 16px;
-            font-weight: 600;
-            animation: fadeIn 0.3s ease-out;
-        `;
+    showTemporaryMessage(text, duration = 3000, type = 'info') {
+        return this.toaster.show(type, null, text, { duration });
+    }
 
-        document.body.appendChild(tempMessage);
+    showToast(type, title, message, options) {
+        return this.toaster.show(type, title, message, options);
+    }
 
-        setTimeout(() => {
-            tempMessage.style.animation = 'fadeOut 0.3s ease-out';
+    showSuccess(title, message, options) {
+        return this.toaster.success(title, message, options);
+    }
+
+    showError(title, message, options) {
+        return this.toaster.error(title, message, options);
+    }
+
+    showWarning(title, message, options) {
+        return this.toaster.warning(title, message, options);
+    }
+
+    showInfo(title, message, options) {
+        return this.toaster.info(title, message, options);
+    }
+
+    showTestToasts() {
+        const toasts = [
+            { type: 'success', title: 'Success!', message: 'Dit is een success bericht 🎉', delay: 0 },
+            { type: 'info', title: 'Info', message: 'Dit is een informatief bericht 💡', delay: 500 },
+            { type: 'warning', title: 'Waarschuwing', message: 'Dit is een waarschuwing ⚠️', delay: 1000 },
+            { type: 'error', title: 'Error', message: 'Dit is een error bericht ❌', delay: 1500 }
+        ];
+
+        toasts.forEach(toast => {
             setTimeout(() => {
-                if (tempMessage.parentNode) {
-                    tempMessage.parentNode.removeChild(tempMessage);
-                }
-            }, 300);
-        }, duration);
+                this.showToast(toast.type, toast.title, toast.message);
+            }, toast.delay);
+        });
     }
 
     animateLetterReveal(letterElement) {

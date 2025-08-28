@@ -237,7 +237,15 @@ Doel: Raad het Nederlandse woord voordat je levens op zijn!
 
     showInputFeedback(message, type = 'info', duration = 2000) {
         if (window.gameUI) {
-            window.gameUI.showTemporaryMessage(message, duration);
+            const titles = {
+                'success': 'Gelukt!',
+                'error': 'Fout!',
+                'warning': 'Waarschuwing!',
+                'info': 'Info'
+            };
+
+            const title = titles[type] || titles.info;
+            window.gameUI.showToast(type, title, message, { duration });
         } else {
             console.log(`INPUT FEEDBACK [${type}]: ${message}`);
         }

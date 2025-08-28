@@ -130,6 +130,10 @@ class WordPuzzleGame {
                         this.lives++;
                         this.streak = 0;
                         console.log('🎉 Streak bonus! Extra life granted!');
+                        
+                        if (window.gameUI) {
+                            window.gameUI.showSuccess('Streak Bonus!', 'Je hebt een extra leven gekregen! 🎉');
+                        }
                     }
 
                     if (this.isWordCompleted()) {
