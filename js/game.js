@@ -22,13 +22,36 @@ class WordPuzzleGame {
         this.gameState = 'playing';
         this.soundEnabled = true;
 
+        this.sounds = {};
+
         this.init();
     }
 
     init() {
         console.log('🎮 Word Puzzle Game initialized!');
         this.loadSettings();
+        this.loadSounds();
         this.startNewGame();
+    }
+
+    loadSounds() {
+        const soundFiles = {
+            correct: 'assets/sounds/correct.mp3',
+            wrong: 'assets/sounds/wrong.mp3',
+            victory: 'assets/sounds/victory.mp3',
+            gameOver: 'assets/sounds/gameOver.mp3'
+        };
+
+        for (const [type, path] of Object.entries(soundFiles)) {
+            try {
+                this.sounds[type] = new Audio(path);
+                this.sounds[type].preload = 'auto';
+                this.sounds[type].volume = type === 'gameOver' ? 1.0 : 0.5;
+                console.log(`✅ Sound loaded: ${type}`);
+            } catch (error) {
+                console.warn(`❌ Failed to load sound: ${type}`, error);
+            }
+        }
     }
 
     startNewGame() {
@@ -71,9 +94,10 @@ class WordPuzzleGame {
         } else {
             this.wrongLetters.push(letter);
             this.lives--;
-            this.playSound('wrong');
 
-            if (this.lives <= 0) {
+            if (this.lives > 0) {
+                this.playSound('wrong');
+            } else {
                 this.loseGame();
             }
         }
@@ -125,30 +149,24 @@ class WordPuzzleGame {
         if (!this.soundEnabled) return;
 
         try {
-            const audioContext = new (window.AudioContext || window.webkitAudioContext)();
-            const oscillator = audioContext.createOscillator();
-            const gainNode = audioContext.createGain();
+            const sound = this.sounds[type];
+            if (sound) {
+                sound.currentTime = 0;
 
-            oscillator.connect(gainNode);
-            gainNode.connect(audioContext.destination);
+                const playPromise = sound.play();
 
-            switch (type) {
-                case 'correct':
-                    oscillator.frequency.value = 523.25;
-                    gainNode.gain.value = 0.1;
-                    oscillator.start();
-                    oscillator.stop(audioContext.currentTime + 0.2);
-                    break;
-                case 'wrong':
-                    oscillator.frequency.value = 174.61;
-                    oscillator.type = 'sawtooth';
-                    gainNode.gain.value = 0.1;
-                    oscillator.start();
-                    oscillator.stop(audioContext.currentTime + 0.3);
-                    break;
+                if (playPromise !== undefined) {
+                    playPromise.catch(error => {
+                        console.warn(`⚠️ Could not play sound: ${type}`, error);
+                    });
+                }
+
+                console.log(`🔊 Playing sound: ${type}`);
+            } else {
+                console.warn(`⚠️ Sound not found: ${type}`);
             }
         } catch (error) {
-            console.log('Audio not supported:', error);
+            console.warn(`❌ Error playing sound: ${type}`, error);
         }
     }
 

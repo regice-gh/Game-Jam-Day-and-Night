@@ -231,7 +231,7 @@ class GameUI {
         if (gameStatus.gameState === 'playing') {
             this.elements.wordHint.textContent = `Woord van ${wordLength} letters - ${guessedCount} letters geraden`;
         } else if (gameStatus.gameState === 'won') {
-            this.elements.wordHint.textContent = 'Gefeliciteerd! Je hebt het woord geraden! 🎉';
+            this.elements.wordHint.textContent = 'Gefeliciteerd! Je hebt het woord geraden!';
         } else if (gameStatus.gameState === 'lost') {
             this.elements.wordHint.textContent = `Game over! Het woord was: ${gameStatus.currentWord}`;
         }
@@ -239,7 +239,8 @@ class GameUI {
 
     updateSoundButton(soundEnabled) {
         if (this.elements.soundToggle) {
-            this.elements.soundToggle.textContent = soundEnabled ? '🔊 Geluid' : '🔇 Geluid';
+            const icon = soundEnabled ? 'fa-volume-up' : 'fa-volume-mute';
+            this.elements.soundToggle.innerHTML = `<i class="fas ${icon}"></i> Geluid`;
         }
     }
 
