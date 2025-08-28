@@ -26,8 +26,6 @@ class GameUI {
             livesDisplay: document.getElementById('livesDisplay'),
             scoreDisplay: document.getElementById('scoreDisplay'),
 
-            usedLetters: document.getElementById('usedLetters'),
-
             virtualKeyboard: document.getElementById('virtualKeyboard'),
 
             newGameBtn: document.getElementById('newGameBtn'),
@@ -133,8 +131,6 @@ class GameUI {
 
         this.updateScoreDisplay(gameStatus.score);
 
-        this.updateUsedLetters(gameStatus);
-
         this.updateKeyboard(gameStatus);
 
         this.updateHintText(gameStatus);
@@ -148,7 +144,6 @@ class GameUI {
 
         if (!gameStatus.currentWords || gameStatus.currentWords.length === 0) return;
 
-        // Calculate max word length for container sizing
         const maxLength = Math.max(...gameStatus.currentWords.map(word => word.length));
         document.documentElement.style.setProperty('--max-word-length', maxLength);
 
@@ -199,33 +194,6 @@ class GameUI {
         }
     }
 
-    updateUsedLetters(gameStatus) {
-        if (!this.elements.usedLetters) return;
-
-        this.elements.usedLetters.innerHTML = '';
-
-        gameStatus.guessedLetters.forEach(letter => {
-            const letterElement = document.createElement('div');
-            letterElement.className = 'used-letter';
-            letterElement.textContent = letter;
-
-            const status = gameStatus.letterStatus && gameStatus.letterStatus[letter];
-            if (status) {
-                if (!status.presentInAny) {
-                    letterElement.classList.add('incorrect');
-                } else if (!status.remaining) {
-                    letterElement.classList.add('correct');
-                } else if (gameStatus.correctLetters.includes(letter)) {
-                    letterElement.classList.add('correct');
-                } else {
-                    letterElement.classList.add('used');
-                }
-            }
-
-            this.elements.usedLetters.appendChild(letterElement);
-        });
-    }
-
     updateKeyboard(gameStatus) {
         if (!this.elements.virtualKeyboard) return;
 
@@ -264,17 +232,9 @@ class GameUI {
         if (!this.elements.wordHint) return;
         const totalWords = (gameStatus.currentWords && gameStatus.currentWords.length) || 0;
         const guessedCount = gameStatus.correctLetters.length;
-        const streak = gameStatus.streak || 0;
 
         if (gameStatus.gameState === 'playing') {
-            let text = `Totaal ${totalWords} woorden - ${guessedCount} letters geraden`;
-            if (streak > 0) {
-                text += ` | Streak: ${streak}/3`;
-                if (streak === 2) {
-                    text += ' 🔥';
-                }
-            }
-            this.elements.wordHint.textContent = text;
+            this.elements.wordHint.textContent = `Raad het woord!`;
         } else if (gameStatus.gameState === 'won') {
             this.elements.wordHint.textContent = 'Gefeliciteerd! Je hebt alle woorden geraden!';
         } else if (gameStatus.gameState === 'lost') {
@@ -297,7 +257,7 @@ class GameUI {
             this.elements.hintBtn.style.opacity = '0.5';
             this.elements.hintBtn.style.pointerEvents = 'none';
             if (gameStatus.lives >= 2) {
-                this.elements.hintBtn.innerHTML = '<i class="fas fa-lock"></i> Hint (< 2 levens)';
+                this.elements.hintBtn.innerHTML = '<i class="fas fa-lock"></i> Hint';
             } else {
                 this.elements.hintBtn.innerHTML = '<i class="fas fa-lightbulb"></i> Hint';
             }
@@ -407,10 +367,6 @@ class GameUI {
     clearDisplay() {
         if (this.elements.wordDisplay) {
             this.elements.wordDisplay.innerHTML = '';
-        }
-
-        if (this.elements.usedLetters) {
-            this.elements.usedLetters.innerHTML = '';
         }
     }
 }
