@@ -104,14 +104,6 @@ class GameUI {
                 const keyElement = this.elements.virtualKeyboard.querySelector(`[data-letter="${letter}"]`);
                 if (keyElement) {
                     keyElement.classList.add('used');
-
-                    setTimeout(() => {
-                        if (window.wordPuzzleGame.correctLetters.includes(letter)) {
-                            keyElement.classList.add('correct');
-                        } else {
-                            keyElement.classList.add('incorrect');
-                        }
-                    }, 100);
                 }
             }
         }
@@ -140,25 +132,34 @@ class GameUI {
 
     updateWordDisplay(gameStatus) {
         if (!this.elements.wordDisplay) return;
-
+        // render multiple words as rows; use revealedLettersPerWord to decide
         this.elements.wordDisplay.innerHTML = '';
 
-        if (!gameStatus.currentWord) {
-            return;
-        }
+        if (!gameStatus.currentWords || gameStatus.currentWords.length === 0) return;
 
-        gameStatus.currentWord.split('').forEach(letter => {
-            const letterSlot = document.createElement('div');
-            letterSlot.className = 'letter-slot';
+        gameStatus.currentWords.forEach((word, i) => {
+            const row = document.createElement('div');
+            row.className = 'word-row';
+            row.style.display = 'flex';
+            row.style.justifyContent = 'center';
+            row.style.gap = '10px';
+            row.style.marginBottom = '8px';
 
-            if (gameStatus.correctLetters.includes(letter)) {
-                letterSlot.textContent = letter;
-                letterSlot.classList.add('revealed');
-            } else {
-                letterSlot.textContent = '';
-            }
+            word.split('').forEach(letter => {
+                const letterSlot = document.createElement('div');
+                letterSlot.className = 'letter-slot';
 
-            this.elements.wordDisplay.appendChild(letterSlot);
+                if (gameStatus.revealedLettersPerWord && gameStatus.revealedLettersPerWord[i] && gameStatus.revealedLettersPerWord[i].includes(letter)) {
+                    letterSlot.textContent = letter;
+                    letterSlot.classList.add('revealed');
+                } else {
+                    letterSlot.textContent = '';
+                }
+
+                row.appendChild(letterSlot);
+            });
+
+            this.elements.wordDisplay.appendChild(row);
         });
     }
 
@@ -191,10 +192,20 @@ class GameUI {
             letterElement.className = 'used-letter';
             letterElement.textContent = letter;
 
-            if (gameStatus.correctLetters.includes(letter)) {
-                letterElement.classList.add('correct');
-            } else {
-                letterElement.classList.add('incorrect');
+            // mark correct if revealed at least once, incorrect if never present in any word
+            const status = gameStatus.letterStatus && gameStatus.letterStatus[letter];
+            if (status) {
+                if (!status.presentInAny) {
+                    letterElement.classList.add('incorrect');
+                } else if (!status.remaining) {
+                    // present but fully revealed -> mark as correct
+                    letterElement.classList.add('correct');
+                } else if (gameStatus.correctLetters.includes(letter)) {
+                    letterElement.classList.add('correct');
+                } else {
+                    // guessed but still has remaining occurrences
+                    letterElement.classList.add('used');
+                }
             }
 
             this.elements.usedLetters.appendChild(letterElement);
@@ -209,14 +220,30 @@ class GameUI {
             const letter = key.dataset.letter;
 
             key.classList.remove('used', 'correct', 'incorrect');
+            key.style.pointerEvents = '';
+            key.style.opacity = '';
+            key.removeAttribute('aria-disabled');
 
             if (gameStatus.guessedLetters.includes(letter)) {
                 key.classList.add('used');
+            }
 
-                if (gameStatus.correctLetters.includes(letter)) {
-                    key.classList.add('correct');
-                } else {
+            const status = gameStatus.letterStatus && gameStatus.letterStatus[letter];
+            if (status) {
+                if (!status.presentInAny) {
+                    // letter not present in any word -> disable and mark incorrect
                     key.classList.add('incorrect');
+                    key.setAttribute('aria-disabled', 'true');
+                    key.style.pointerEvents = 'none';
+                    key.style.opacity = '0.4';
+                } else if (!status.remaining) {
+                    // present but fully revealed -> disable
+                    key.classList.add('used');
+                    key.setAttribute('aria-disabled', 'true');
+                    key.style.pointerEvents = 'none';
+                    key.style.opacity = '0.6';
+                } else if (gameStatus.correctLetters.includes(letter)) {
+                    key.classList.add('correct');
                 }
             }
         });
@@ -224,16 +251,15 @@ class GameUI {
 
     updateHintText(gameStatus) {
         if (!this.elements.wordHint) return;
-
-        const wordLength = gameStatus.currentWord.length;
+        const totalWords = (gameStatus.currentWords && gameStatus.currentWords.length) || 0;
         const guessedCount = gameStatus.correctLetters.length;
 
         if (gameStatus.gameState === 'playing') {
-            this.elements.wordHint.textContent = `Woord van ${wordLength} letters - ${guessedCount} letters geraden`;
+            this.elements.wordHint.textContent = `Totaal ${totalWords} woorden - ${guessedCount} letters geraden`;
         } else if (gameStatus.gameState === 'won') {
-            this.elements.wordHint.textContent = 'Gefeliciteerd! Je hebt het woord geraden!';
+            this.elements.wordHint.textContent = 'Gefeliciteerd! Je hebt alle woorden geraden!';
         } else if (gameStatus.gameState === 'lost') {
-            this.elements.wordHint.textContent = `Game over! Het woord was: ${gameStatus.currentWord}`;
+            this.elements.wordHint.textContent = `Game over!`; 
         }
     }
 
