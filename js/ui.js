@@ -63,8 +63,18 @@ class GameUI {
 
         if (this.elements.hintBtn) {
             this.elements.hintBtn.addEventListener('click', () => {
-                console.log('Hint button clicked - feature coming soon!');
-                this.showTemporaryMessage('Hints komen binnenkort!', 2000);
+                if (window.wordPuzzleGame) {
+                    const success = window.wordPuzzleGame.useHint();
+                    if (!success) {
+                        if (window.wordPuzzleGame.lives >= 2) {
+                            this.showTemporaryMessage('Hints zijn alleen beschikbaar met minder dan 2 levens!', 3000);
+                        } else {
+                            this.showTemporaryMessage('Geen hints beschikbaar!', 2000);
+                        }
+                    } else {
+                        this.showTemporaryMessage('Hint gebruikt! Letter onthuld 💡', 2000);
+                    }
+                }
             });
         }
 
@@ -128,22 +138,29 @@ class GameUI {
         this.updateKeyboard(gameStatus);
 
         this.updateHintText(gameStatus);
+
+        this.updateHintButton(gameStatus);
     }
 
     updateWordDisplay(gameStatus) {
         if (!this.elements.wordDisplay) return;
-        // render multiple words as rows; use revealedLettersPerWord to decide
         this.elements.wordDisplay.innerHTML = '';
 
         if (!gameStatus.currentWords || gameStatus.currentWords.length === 0) return;
+
+        // Calculate max word length for container sizing
+        const maxLength = Math.max(...gameStatus.currentWords.map(word => word.length));
+        document.documentElement.style.setProperty('--max-word-length', maxLength);
 
         gameStatus.currentWords.forEach((word, i) => {
             const row = document.createElement('div');
             row.className = 'word-row';
             row.style.display = 'flex';
             row.style.justifyContent = 'center';
-            row.style.gap = '10px';
-            row.style.marginBottom = '8px';
+            row.style.gap = '8px';
+            row.style.marginBottom = '12px';
+            row.style.flexWrap = 'wrap';
+            row.style.width = '100%';
 
             word.split('').forEach(letter => {
                 const letterSlot = document.createElement('div');
@@ -192,18 +209,15 @@ class GameUI {
             letterElement.className = 'used-letter';
             letterElement.textContent = letter;
 
-            // mark correct if revealed at least once, incorrect if never present in any word
             const status = gameStatus.letterStatus && gameStatus.letterStatus[letter];
             if (status) {
                 if (!status.presentInAny) {
                     letterElement.classList.add('incorrect');
                 } else if (!status.remaining) {
-                    // present but fully revealed -> mark as correct
                     letterElement.classList.add('correct');
                 } else if (gameStatus.correctLetters.includes(letter)) {
                     letterElement.classList.add('correct');
                 } else {
-                    // guessed but still has remaining occurrences
                     letterElement.classList.add('used');
                 }
             }
@@ -226,24 +240,21 @@ class GameUI {
 
             if (gameStatus.guessedLetters.includes(letter)) {
                 key.classList.add('used');
-            }
 
-            const status = gameStatus.letterStatus && gameStatus.letterStatus[letter];
-            if (status) {
-                if (!status.presentInAny) {
-                    // letter not present in any word -> disable and mark incorrect
-                    key.classList.add('incorrect');
-                    key.setAttribute('aria-disabled', 'true');
-                    key.style.pointerEvents = 'none';
-                    key.style.opacity = '0.4';
-                } else if (!status.remaining) {
-                    // present but fully revealed -> disable
-                    key.classList.add('used');
-                    key.setAttribute('aria-disabled', 'true');
-                    key.style.pointerEvents = 'none';
-                    key.style.opacity = '0.6';
-                } else if (gameStatus.correctLetters.includes(letter)) {
-                    key.classList.add('correct');
+                const status = gameStatus.letterStatus && gameStatus.letterStatus[letter];
+                if (status) {
+                    if (!status.presentInAny) {
+                        key.classList.add('incorrect');
+                        key.setAttribute('aria-disabled', 'true');
+                        key.style.pointerEvents = 'none';
+                        key.style.opacity = '0.4';
+                    } else if (!status.remaining) {
+                        key.setAttribute('aria-disabled', 'true');
+                        key.style.pointerEvents = 'none';
+                        key.style.opacity = '0.6';
+                    } else if (gameStatus.correctLetters.includes(letter)) {
+                        key.classList.add('correct');
+                    }
                 }
             }
         });
@@ -253,13 +264,43 @@ class GameUI {
         if (!this.elements.wordHint) return;
         const totalWords = (gameStatus.currentWords && gameStatus.currentWords.length) || 0;
         const guessedCount = gameStatus.correctLetters.length;
+        const streak = gameStatus.streak || 0;
 
         if (gameStatus.gameState === 'playing') {
-            this.elements.wordHint.textContent = `Totaal ${totalWords} woorden - ${guessedCount} letters geraden`;
+            let text = `Totaal ${totalWords} woorden - ${guessedCount} letters geraden`;
+            if (streak > 0) {
+                text += ` | Streak: ${streak}/3`;
+                if (streak === 2) {
+                    text += ' 🔥';
+                }
+            }
+            this.elements.wordHint.textContent = text;
         } else if (gameStatus.gameState === 'won') {
             this.elements.wordHint.textContent = 'Gefeliciteerd! Je hebt alle woorden geraden!';
         } else if (gameStatus.gameState === 'lost') {
-            this.elements.wordHint.textContent = `Game over!`; 
+            this.elements.wordHint.textContent = `Game over!`;
+        }
+    }
+
+    updateHintButton(gameStatus) {
+        if (!this.elements.hintBtn) return;
+
+        const canUseHint = gameStatus.lives < 2 && gameStatus.gameState === 'playing';
+
+        if (canUseHint) {
+            this.elements.hintBtn.disabled = false;
+            this.elements.hintBtn.style.opacity = '1';
+            this.elements.hintBtn.style.pointerEvents = 'auto';
+            this.elements.hintBtn.innerHTML = '<i class="fas fa-lightbulb"></i> Hint';
+        } else {
+            this.elements.hintBtn.disabled = true;
+            this.elements.hintBtn.style.opacity = '0.5';
+            this.elements.hintBtn.style.pointerEvents = 'none';
+            if (gameStatus.lives >= 2) {
+                this.elements.hintBtn.innerHTML = '<i class="fas fa-lock"></i> Hint (< 2 levens)';
+            } else {
+                this.elements.hintBtn.innerHTML = '<i class="fas fa-lightbulb"></i> Hint';
+            }
         }
     }
 

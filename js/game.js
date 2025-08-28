@@ -20,16 +20,17 @@ class WordPuzzleGame {
             'EFFICIENTIE', 'TRANSPARANTIE', 'COMMUNICATIE', 'COLLABORATIE', 'PROACTIVITEIT'
         ];
 
-    // now support multiple words per game
-    this.currentWords = [];
-    this.revealedLettersPerWord = []; // array of Sets, one per word
-    this.guessedLetters = []; // letters the player has tried (globally)
-    this.correctLetters = []; // letters revealed at least once across words
-    this.wrongLetters = [];
+        this.currentWords = [];
+        this.revealedLettersPerWord = [];
+        this.guessedLetters = [];
+        this.correctLetters = [];
+        this.wrongLetters = [];
         this.lives = 5;
         this.score = 0;
         this.gameState = 'playing';
         this.soundEnabled = true;
+        this.streak = 0;
+        this.hintsUsed = 0;
 
         this.sounds = {};
 
@@ -40,7 +41,7 @@ class WordPuzzleGame {
         console.log('🎮 Word Puzzle Game initialized!');
         this.loadSettings();
         this.loadSounds();
-    this.startNewGame();
+        this.startNewGame();
     }
 
     loadSounds() {
@@ -63,7 +64,6 @@ class WordPuzzleGame {
         }
     }
 
-    // start a game with multiple words
     startNewGame(wordCount = 3) {
         const pool = [...this.EasyWordList, ...this.HardWordList];
         const chosen = [];
@@ -83,6 +83,8 @@ class WordPuzzleGame {
         this.lives = 5;
         this.score = 0;
         this.gameState = 'playing';
+        this.streak = 0;
+        this.hintsUsed = 0;
 
         console.log(`🎯 New words: ${this.currentWords.join(', ')}`);
 
@@ -95,34 +97,25 @@ class WordPuzzleGame {
         const randomIndex = Math.floor(Math.random() * this.EasyWordList.length);
         return this.EasyWordList[randomIndex];
     }
-    getRandomHardWord(){
+    getRandomHardWord() {
         const randomIndex = Math.floor(Math.random() * this.HardWordList.length);
         return this.HardWordList[randomIndex];
     }
 
-    // On each guess, reveal the letter in the first word (in order) that contains it and
-    // still has that letter unrevealed. If no words contain it at all, treat as wrong.
-    // The player may press the same letter multiple times; once all words that contain
-    // the letter have had it revealed, further presses will be rejected and the UI
-    // should disable the key.
     guessLetter(letter) {
         letter = letter.toUpperCase();
 
         if (this.gameState !== 'playing') return false;
 
-        // determine if there are remaining unrevealed occurrences across words
         const remaining = this.currentWords.some((word, i) => word.includes(letter) && !this.revealedLettersPerWord[i].has(letter));
 
-        // if letter already fully exhausted (no remaining) and it was already tried, reject
         if (!remaining && this.guessedLetters.includes(letter)) {
             return false;
         }
 
-        // record that the player tried this letter at least once
         if (!this.guessedLetters.includes(letter)) this.guessedLetters.push(letter);
 
         if (remaining) {
-            // reveal in the first matching word that still needs it
             for (let i = 0; i < this.currentWords.length; i++) {
                 const word = this.currentWords[i];
                 if (word.includes(letter) && !this.revealedLettersPerWord[i].has(letter)) {
@@ -130,25 +123,29 @@ class WordPuzzleGame {
 
                     if (!this.correctLetters.includes(letter)) this.correctLetters.push(letter);
                     this.score += 10;
+                    this.streak++;
                     this.playSound('correct');
 
-                    // check completion after revealing
+                    if (this.streak === 3 && this.lives < 5) {
+                        this.lives++;
+                        this.streak = 0;
+                        console.log('🎉 Streak bonus! Extra life granted!');
+                    }
+
                     if (this.isWordCompleted()) {
                         this.winGame();
                     }
 
-                    break; // stop after first reveal
+                    break;
                 }
             }
         } else {
-            // wrong guess (letter not present in any word or already revealed everywhere)
-            // check if letter exists in any word at all
             const presentInAny = this.currentWords.some(word => word.includes(letter));
 
-            // If the letter is present in no words at all, it's a wrong guess
             if (!presentInAny) {
                 if (!this.wrongLetters.includes(letter)) this.wrongLetters.push(letter);
                 this.lives--;
+                this.streak = 0;
 
                 if (this.lives > 0) {
                     this.playSound('wrong');
@@ -157,8 +154,6 @@ class WordPuzzleGame {
                 }
             }
 
-            // if the letter was present but had no remaining unrevealed occurrences,
-            // we considered it exhausted and already added to guessedLetters above.
         }
 
         if (window.gameUI) {
@@ -169,7 +164,6 @@ class WordPuzzleGame {
     }
 
     isWordCompleted() {
-        // completed when every word has all unique letters revealed
         return this.currentWords.every((word, i) => {
             const unique = Array.from(new Set(word.split('')));
             return unique.every(ch => this.revealedLettersPerWord[i].has(ch));
@@ -238,6 +232,59 @@ class WordPuzzleGame {
         return this.soundEnabled;
     }
 
+    useHint() {
+        if (this.lives >= 2) {
+            console.log('❌ Hints can only be used when you have less than 2 lives');
+            return false;
+        }
+
+        if (this.gameState !== 'playing') {
+            console.log('❌ Cannot use hint when game is not active');
+            return false;
+        }
+
+        const unrevealedLetters = [];
+
+        for (let i = 0; i < this.currentWords.length; i++) {
+            const word = this.currentWords[i];
+            for (const letter of word) {
+                if (!this.revealedLettersPerWord[i].has(letter) && !unrevealedLetters.includes(letter)) {
+                    unrevealedLetters.push(letter);
+                }
+            }
+        }
+
+        if (unrevealedLetters.length === 0) {
+            console.log('❌ No letters available for hint');
+            return false;
+        }
+
+        const randomLetter = unrevealedLetters[Math.floor(Math.random() * unrevealedLetters.length)];
+
+        for (let i = 0; i < this.currentWords.length; i++) {
+            const word = this.currentWords[i];
+            if (word.includes(randomLetter)) {
+                this.revealedLettersPerWord[i].add(randomLetter);
+            }
+        }
+
+        if (!this.guessedLetters.includes(randomLetter)) this.guessedLetters.push(randomLetter);
+        if (!this.correctLetters.includes(randomLetter)) this.correctLetters.push(randomLetter);
+
+        this.hintsUsed++;
+        console.log(`💡 Hint used! Letter "${randomLetter}" revealed`);
+
+        if (this.isWordCompleted()) {
+            this.winGame();
+        }
+
+        if (window.gameUI) {
+            window.gameUI.updateDisplay();
+        }
+
+        return true;
+    }
+
     loadSettings() {
         if (gameStorage) {
             const settings = gameStorage.loadSettings();
@@ -246,12 +293,11 @@ class WordPuzzleGame {
     }
 
     getGameStatus() {
-        // build per-word progress and letter status map for the UI
         const wordProgress = this.currentWords.map((word, i) =>
             word.split('').map(letter => this.revealedLettersPerWord[i].has(letter) ? letter : '_').join(' ')
         );
 
-        // letter status: presentInAny, remaining (unrevealed occurrences exist)
+
         const letters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'.split('');
         const letterStatus = {};
         letters.forEach(ch => {
@@ -271,7 +317,9 @@ class WordPuzzleGame {
             lives: this.lives,
             score: this.score,
             gameState: this.gameState,
-            soundEnabled: this.soundEnabled
+            soundEnabled: this.soundEnabled,
+            streak: this.streak,
+            hintsUsed: this.hintsUsed
         };
     }
 }
