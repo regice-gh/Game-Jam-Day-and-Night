@@ -1,19 +1,89 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="nl">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Game Jam Day and Night</title>
+    <title>Woordpuzzel Game - Lingo Style</title>
     <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
 </head>
 
 <body>
-    <canvas id="gameCanvas"></canvas>
+    <div id="cookieConsent" class="cookie-modal hidden">
+        <div class="cookie-content">
+            <h3>🍪 Cookies</h3>
+            <p>We gebruiken cookies om je spelvoortgang op te slaan. Akkoord?</p>
+            <div class="cookie-buttons">
+                <button id="acceptCookies" class="btn btn-primary">Accepteren</button>
+                <button id="declineCookies" class="btn btn-secondary">Weigeren</button>
+            </div>
+        </div>
+    </div>
 
+    <div class="game-container">
+        <header class="game-header">
+            <h1 class="game-title">🎯 Woordpuzzel</h1>
+            <div class="game-stats">
+                <div class="lives-container">
+                    <span class="lives-label">Levens:</span>
+                    <div id="livesDisplay" class="lives-hearts">
+                        <span class="heart">❤️</span>
+                        <span class="heart">❤️</span>
+                        <span class="heart">❤️</span>
+                        <span class="heart">❤️</span>
+                        <span class="heart">❤️</span>
+                    </div>
+                </div>
+                <div class="score-container">
+                    <span class="score-label">Score:</span>
+                    <span id="scoreDisplay" class="score-value">0</span>
+                </div>
+            </div>
+        </header>
+
+        <main class="game-board">
+            <div class="word-container">
+                <div id="wordDisplay" class="word-display">
+                </div>
+                <div class="word-hint">
+                    <span id="wordHint" class="hint-text">Raad het woord!</span>
+                </div>
+            </div>
+
+            <div class="used-letters-container">
+                <h3>Gebruikte letters:</h3>
+                <div id="usedLetters" class="used-letters">
+                </div>
+            </div>
+
+            <div class="keyboard-container">
+                <div id="virtualKeyboard" class="virtual-keyboard">
+                </div>
+            </div>
+
+            <div class="game-controls">
+                <button id="newGameBtn" class="btn btn-primary">🎮 Nieuw Spel</button>
+                <button id="hintBtn" class="btn btn-secondary">💡 Hint</button>
+                <button id="soundToggle" class="btn btn-secondary">🔊 Geluid</button>
+            </div>
+        </main>
+
+        <div id="gameMessage" class="game-message hidden">
+            <div class="message-content">
+                <h3 id="messageTitle">Gefeliciteerd!</h3>
+                <p id="messageText">Je hebt het woord geraden!</p>
+                <button id="messageBtn" class="btn btn-primary">Doorgaan</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="soundEffects" style="display: none;">
+    </div>
+
+    <script src="js/storage.js"></script>
     <script src="js/game.js"></script>
     <script src="js/ui.js"></script>
-    <script src="js/storage.js"></script>
     <script src="js/input.js"></script>
 </body>
 
