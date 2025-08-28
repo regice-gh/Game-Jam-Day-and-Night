@@ -326,11 +326,12 @@ class GameUI {
             row.style.flexWrap = 'wrap';
             row.style.width = '100%';
 
-            word.split('').forEach(letter => {
+            word.split('').forEach((letter, idx) => {
                 const letterSlot = document.createElement('div');
                 letterSlot.className = 'letter-slot';
 
-                if (gameStatus.revealedLettersPerWord && gameStatus.revealedLettersPerWord[i] && gameStatus.revealedLettersPerWord[i].includes(letter)) {
+                const revealedPositions = gameStatus.revealedPositionsPerWord && gameStatus.revealedPositionsPerWord[i];
+                if (revealedPositions && revealedPositions.includes(idx)) {
                     letterSlot.textContent = letter;
                     letterSlot.classList.add('revealed');
                 } else {
@@ -437,13 +438,10 @@ class GameUI {
         const totalWords = gameStatus.currentWords ? gameStatus.currentWords.length : 0;
         let completedWords = 0;
 
-        if (gameStatus.currentWords && gameStatus.revealedLettersPerWord) {
+        if (gameStatus.currentWords && gameStatus.revealedPositionsPerWord) {
             completedWords = gameStatus.currentWords.reduce((count, word, i) => {
-                const unique = Array.from(new Set(word.split('')));
-                const isComplete = unique.every(ch =>
-                    gameStatus.revealedLettersPerWord[i] &&
-                    gameStatus.revealedLettersPerWord[i].includes(ch)
-                );
+                const isComplete = gameStatus.revealedPositionsPerWord[i] &&
+                    gameStatus.revealedPositionsPerWord[i].length === word.length;
                 return count + (isComplete ? 1 : 0);
             }, 0);
         }

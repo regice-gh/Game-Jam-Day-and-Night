@@ -21,7 +21,7 @@ class WordPuzzleGame {
         ];
 
         this.currentWords = [];
-        this.revealedLettersPerWord = [];
+        this.revealedPositionsPerWord = [];
         this.guessedLetters = [];
         this.correctLetters = [];
         this.wrongLetters = [];
@@ -76,7 +76,7 @@ class WordPuzzleGame {
         }
 
         this.currentWords = chosen;
-        this.revealedLettersPerWord = this.currentWords.map(() => new Set());
+        this.revealedPositionsPerWord = this.currentWords.map(word => new Set());
         this.guessedLetters = [];
         this.correctLetters = [];
         this.wrongLetters = [];
@@ -107,7 +107,14 @@ class WordPuzzleGame {
 
         if (this.gameState !== 'playing') return false;
 
-        const remaining = this.currentWords.some((word, i) => word.includes(letter) && !this.revealedLettersPerWord[i].has(letter));
+        const remaining = this.currentWords.some((word, i) => {
+            for (let idx = 0; idx < word.length; idx++) {
+                if (word[idx] === letter && !this.revealedPositionsPerWord[i].has(idx)) {
+                    return true;
+                }
+            }
+            return false;
+        });
 
         if (!remaining && this.guessedLetters.includes(letter)) {
             return false;
@@ -116,31 +123,34 @@ class WordPuzzleGame {
         if (!this.guessedLetters.includes(letter)) this.guessedLetters.push(letter);
 
         if (remaining) {
-            for (let i = 0; i < this.currentWords.length; i++) {
+            let revealed = false;
+            for (let i = 0; i < this.currentWords.length && !revealed; i++) {
                 const word = this.currentWords[i];
-                if (word.includes(letter) && !this.revealedLettersPerWord[i].has(letter)) {
-                    this.revealedLettersPerWord[i].add(letter);
+                for (let idx = 0; idx < word.length; idx++) {
+                    if (word[idx] === letter && !this.revealedPositionsPerWord[i].has(idx)) {
+                        this.revealedPositionsPerWord[i].add(idx);
 
-                    if (!this.correctLetters.includes(letter)) this.correctLetters.push(letter);
-                    this.score += 10;
-                    this.streak++;
-                    this.playSound('correct');
+                        if (!this.correctLetters.includes(letter)) this.correctLetters.push(letter);
+                        this.score += 10;
+                        this.streak++;
+                        this.playSound('correct');
 
-                    if (this.streak === 3 && this.lives < 5) {
-                        this.lives++;
-                        this.streak = 0;
-                        console.log('🎉 Streak bonus! Extra life granted!');
-                        
-                        if (window.gameUI) {
-                            window.gameUI.showSuccess('Streak Bonus!', 'Je hebt een extra leven gekregen! 🎉');
+                        if (this.streak === 3 && this.lives < 5) {
+                            this.lives++;
+                            this.streak = 0;
+
+                            if (window.gameUI) {
+                                window.gameUI.showSuccess('Streak Bonus!', 'Je hebt een extra leven gekregen!');
+                            }
                         }
-                    }
 
-                    if (this.isWordCompleted()) {
-                        this.winGame();
-                    }
+                        if (this.isWordCompleted()) {
+                            this.winGame();
+                        }
 
-                    break;
+                        revealed = true;
+                        break;
+                    }
                 }
             }
         } else {
@@ -169,8 +179,7 @@ class WordPuzzleGame {
 
     isWordCompleted() {
         return this.currentWords.every((word, i) => {
-            const unique = Array.from(new Set(word.split('')));
-            return unique.every(ch => this.revealedLettersPerWord[i].has(ch));
+            return this.revealedPositionsPerWord[i].size === word.length;
         });
     }
 
@@ -221,10 +230,6 @@ class WordPuzzleGame {
                         console.warn(`⚠️ Could not play sound: ${type}`, error);
                     });
                 }
-
-                console.log(`🔊 Playing sound: ${type}`);
-            } else {
-                console.warn(`⚠️ Sound not found: ${type}`);
             }
         } catch (error) {
             console.warn(`❌ Error playing sound: ${type}`, error);
@@ -238,45 +243,39 @@ class WordPuzzleGame {
 
     useHint() {
         if (this.lives >= 2) {
-            console.log('❌ Hints can only be used when you have less than 2 lives');
             return false;
         }
 
         if (this.gameState !== 'playing') {
-            console.log('❌ Cannot use hint when game is not active');
             return false;
         }
 
-        const unrevealedLetters = [];
+        const unrevealedPositions = [];
 
         for (let i = 0; i < this.currentWords.length; i++) {
             const word = this.currentWords[i];
-            for (const letter of word) {
-                if (!this.revealedLettersPerWord[i].has(letter) && !unrevealedLetters.includes(letter)) {
-                    unrevealedLetters.push(letter);
+            for (let idx = 0; idx < word.length; idx++) {
+                if (!this.revealedPositionsPerWord[i].has(idx)) {
+                    unrevealedPositions.push({ wordIndex: i, position: idx });
                 }
             }
         }
 
-        if (unrevealedLetters.length === 0) {
-            console.log('❌ No letters available for hint');
+        if (unrevealedPositions.length === 0) {
             return false;
         }
 
-        const randomLetter = unrevealedLetters[Math.floor(Math.random() * unrevealedLetters.length)];
+        const choice = unrevealedPositions[Math.floor(Math.random() * unrevealedPositions.length)];
+        const i = choice.wordIndex;
+        const idx = choice.position;
+        const letter = this.currentWords[i][idx];
 
-        for (let i = 0; i < this.currentWords.length; i++) {
-            const word = this.currentWords[i];
-            if (word.includes(randomLetter)) {
-                this.revealedLettersPerWord[i].add(randomLetter);
-            }
-        }
+        this.revealedPositionsPerWord[i].add(idx);
 
-        if (!this.guessedLetters.includes(randomLetter)) this.guessedLetters.push(randomLetter);
-        if (!this.correctLetters.includes(randomLetter)) this.correctLetters.push(randomLetter);
+        if (!this.guessedLetters.includes(letter)) this.guessedLetters.push(letter);
+        if (!this.correctLetters.includes(letter)) this.correctLetters.push(letter);
 
         this.hintsUsed++;
-        console.log(`💡 Hint used! Letter "${randomLetter}" revealed`);
 
         if (this.isWordCompleted()) {
             this.winGame();
@@ -298,7 +297,7 @@ class WordPuzzleGame {
 
     getGameStatus() {
         const wordProgress = this.currentWords.map((word, i) =>
-            word.split('').map(letter => this.revealedLettersPerWord[i].has(letter) ? letter : '_').join(' ')
+            word.split('').map((letter, idx) => this.revealedPositionsPerWord[i].has(idx) ? letter : '_').join(' ')
         );
 
 
@@ -306,14 +305,21 @@ class WordPuzzleGame {
         const letterStatus = {};
         letters.forEach(ch => {
             const presentInAny = this.currentWords.some(word => word.includes(ch));
-            const remaining = this.currentWords.some((word, i) => word.includes(ch) && !this.revealedLettersPerWord[i].has(ch));
+            const remaining = this.currentWords.some((word, i) => {
+                for (let idx = 0; idx < word.length; idx++) {
+                    if (word[idx] === ch && !this.revealedPositionsPerWord[i].has(idx)) {
+                        return true;
+                    }
+                }
+                return false;
+            });
             letterStatus[ch] = { presentInAny, remaining };
         });
 
         return {
             currentWords: [...this.currentWords],
             wordProgress,
-            revealedLettersPerWord: this.revealedLettersPerWord.map(s => Array.from(s)),
+            revealedPositionsPerWord: this.revealedPositionsPerWord.map(s => Array.from(s)),
             guessedLetters: [...this.guessedLetters],
             correctLetters: [...this.correctLetters],
             wrongLetters: [...this.wrongLetters],
