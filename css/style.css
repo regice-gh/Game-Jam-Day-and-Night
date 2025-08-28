@@ -1,0 +1,10 @@
+body{
+    margin: 0;
+    overflow: hidden;
+}
+
+
+#gameCanvas{
+    margin: 0;
+    background-color: gray;
+}

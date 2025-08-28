@@ -1,0 +1,1 @@
+//array with words corresponding to the genre
