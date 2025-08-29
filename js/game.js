@@ -10,7 +10,7 @@ class WordPuzzleGame {
             'GROOT', 'KLEIN', 'MOOI', 'LELIJK', 'NIEUW',
             'WINTER', 'LENTE', 'ZOMER', 'HERFST', 'SNEEUW',
             'BLOEM', 'BOOM', 'GRAS', 'VOGEL', 'HOND',
-            'COMPUTER', 'TELEFOON', 'INTERNET', 'WEBSITE', 'EMAIL'
+            'COMPUTER', 'TELEFOON', 'INTERNET', 'WEBSITE', 'EMAIL'  
         ];
         this.HardWordList = [
             'KETTINGSAW', 'VERDOVENDE', 'ONDERBROEK', 'AFSPRAAK', 'VERANTWOORD',
@@ -34,6 +34,9 @@ class WordPuzzleGame {
 
         this.sounds = {};
 
+        this.lastGuessedLetter = null;
+        this.lastReveal = null;
+
         this.init();
     }
 
@@ -49,7 +52,7 @@ class WordPuzzleGame {
             correct: 'assets/sounds/correct.mp3',
             wrong: 'assets/sounds/wrong.mp3',
             victory: 'assets/sounds/victory.mp3',
-            gameOver: 'assets/sounds/gameover.mp3'
+            gameOver: 'assets/sounds/gameOver.mp3'
         };
 
         for (const [type, path] of Object.entries(soundFiles)) {
@@ -107,6 +110,9 @@ class WordPuzzleGame {
 
         if (this.gameState !== 'playing') return false;
 
+        this.lastGuessedLetter = letter;
+        this.lastReveal = null;
+
         const remaining = this.currentWords.some((word, i) => {
             for (let idx = 0; idx < word.length; idx++) {
                 if (word[idx] === letter && !this.revealedPositionsPerWord[i].has(idx)) {
@@ -129,6 +135,7 @@ class WordPuzzleGame {
                 for (let idx = 0; idx < word.length; idx++) {
                     if (word[idx] === letter && !this.revealedPositionsPerWord[i].has(idx)) {
                         this.revealedPositionsPerWord[i].add(idx);
+                        this.lastReveal = { wordIndex: i, position: idx, letter };
 
                         if (!this.correctLetters.includes(letter)) this.correctLetters.push(letter);
                         this.score += 10;
@@ -189,10 +196,13 @@ class WordPuzzleGame {
         this.playSound('victory');
 
         if (window.gameUI) {
+            const wordsText = this.currentWords && this.currentWords.length > 0
+                ? `De woorden waren: "${this.currentWords.join('\", \"')}".`
+                : '';
             window.gameUI.showMessage(
                 'Gefeliciteerd! 🎉',
-                `Je hebt het woord "${this.currentWord}" geraden!`,
-                'Volgend woord',
+                `Je hebt alle woorden geraden! ${wordsText}`.trim(),
+                'Nieuw Spel',
                 () => this.startNewGame()
             );
         }
@@ -203,9 +213,12 @@ class WordPuzzleGame {
         this.playSound('gameOver');
 
         if (window.gameUI) {
+            const wordsText = this.currentWords && this.currentWords.length > 0
+                ? `De woorden waren: "${this.currentWords.join('\", \"')}"`
+                : 'Geen woorden beschikbaar.';
             window.gameUI.showMessage(
                 'Game Over! 💀',
-                `Het woord was: "${this.currentWord}"`,
+                wordsText,
                 'Nieuw Spel',
                 () => {
                     this.score = 0;
@@ -329,7 +342,9 @@ class WordPuzzleGame {
             gameState: this.gameState,
             soundEnabled: this.soundEnabled,
             streak: this.streak,
-            hintsUsed: this.hintsUsed
+            hintsUsed: this.hintsUsed,
+            lastGuessedLetter: this.lastGuessedLetter,
+            lastReveal: this.lastReveal
         };
     }
 }

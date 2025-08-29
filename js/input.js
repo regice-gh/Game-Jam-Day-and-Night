@@ -113,7 +113,6 @@ class InputHandler {
 
         if (success) {
             console.log(`Letter ${letter} input processed`);
-
             this.addKeyboardFeedback(letter);
         } else {
             console.log(`Letter ${letter} input rejected (already guessed or game not active)`);

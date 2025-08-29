@@ -294,6 +294,10 @@ class GameUI {
 
         this.updateWordDisplay(gameStatus);
 
+        if (gameStatus.lastGuessedLetter && gameStatus.lastReveal) {
+            this.animateScanToReveal(gameStatus);
+        }
+
         this.updateLivesDisplay(gameStatus.lives);
 
         this.updateScoreDisplay(gameStatus.score);
@@ -331,9 +335,17 @@ class GameUI {
                 letterSlot.className = 'letter-slot';
 
                 const revealedPositions = gameStatus.revealedPositionsPerWord && gameStatus.revealedPositionsPerWord[i];
+                const isNewlyRevealed = gameStatus.lastReveal
+                    && gameStatus.lastReveal.wordIndex === i
+                    && gameStatus.lastReveal.position === idx;
+
                 if (revealedPositions && revealedPositions.includes(idx)) {
-                    letterSlot.textContent = letter;
-                    letterSlot.classList.add('revealed');
+                    if (!isNewlyRevealed) {
+                        letterSlot.textContent = letter;
+                        letterSlot.classList.add('revealed');
+                    } else {
+                        letterSlot.textContent = '';
+                    }
                 } else {
                     letterSlot.textContent = '';
                 }
@@ -343,6 +355,33 @@ class GameUI {
 
             this.elements.wordDisplay.appendChild(row);
         });
+    }
+
+    animateScanToReveal(gameStatus) {
+        const { wordIndex, position } = gameStatus.lastReveal || {};
+        if (wordIndex === undefined || position === undefined) return;
+
+        const rows = this.elements.wordDisplay.querySelectorAll('.word-row');
+        const row = rows[wordIndex];
+        if (!row) return;
+
+        const slots = row.querySelectorAll('.letter-slot');
+        let i = 0;
+        const step = () => {
+            if (i > position) return;
+            slots.forEach((s, idx) => s.classList.toggle('scanning', idx === i));
+            if (i === position) {
+                setTimeout(() => {
+                    slots[i].classList.remove('scanning');
+                    slots[i].classList.add('revealed');
+                    slots[i].textContent = gameStatus.currentWords[wordIndex][position];
+                }, 120);
+                return;
+            }
+            i++;
+            setTimeout(step, 80);
+        };
+        step();
     }
 
     updateLivesDisplay(lives) {

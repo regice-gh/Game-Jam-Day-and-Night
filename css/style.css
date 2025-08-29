@@ -300,6 +300,11 @@ body {
     transform: scale(1.05);
 }
 
+.letter-slot.scanning {
+    outline: 2px solid var(--blue-light);
+    box-shadow: 0 0 10px rgba(96, 165, 250, 0.6);
+}
+
 .letter-slot.wrong {
     background: var(--danger);
     color: white;
