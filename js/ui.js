@@ -166,6 +166,8 @@ class GameUI {
     init() {
         this.cacheElements();
 
+        this.applyInitialTheme();
+
         this.setupEventListeners();
 
         this.initializeKeyboard();
@@ -194,7 +196,8 @@ class GameUI {
             gameMessage: document.getElementById('gameMessage'),
             messageTitle: document.getElementById('messageTitle'),
             messageText: document.getElementById('messageText'),
-            messageBtn: document.getElementById('messageBtn')
+            messageBtn: document.getElementById('messageBtn'),
+            themeToggle: document.getElementById('themeToggle')
         };
     }
 
@@ -236,6 +239,12 @@ class GameUI {
         if (this.elements.testToastBtn) {
             this.elements.testToastBtn.addEventListener('click', () => {
                 this.showTestToasts();
+            });
+        }
+
+        if (this.elements.themeToggle) {
+            this.elements.themeToggle.addEventListener('click', () => {
+                this.toggleTheme();
             });
         }
     }
@@ -543,6 +552,46 @@ class GameUI {
 
     showInfo(title, message, options) {
         return this.toaster.info(title, message, options);
+    }
+
+    applyInitialTheme() {
+        try {
+            const settings = window.gameStorage ? window.gameStorage.loadSettings() : null;
+            let theme = settings && settings.theme ? settings.theme : 'dark';
+            if (theme !== 'light' && theme !== 'dark') theme = 'dark';
+            this.applyTheme(theme);
+        } catch (e) {
+            this.applyTheme('dark');
+        }
+    }
+
+    applyTheme(theme) {
+        if (theme === 'light') {
+            document.body.classList.add('light-theme');
+        } else {
+            document.body.classList.remove('light-theme');
+        }
+        this.updateThemeButton(theme);
+        if (window.gameStorage) {
+            window.gameStorage.updateSetting('theme', theme);
+        }
+    }
+
+    toggleTheme() {
+        const isLight = document.body.classList.contains('light-theme');
+        const nextTheme = isLight ? 'dark' : 'light';
+        this.applyTheme(nextTheme);
+        this.showInfo('Thema', `Thema gewijzigd naar ${nextTheme === 'light' ? 'licht' : 'donker'}`);
+    }
+
+    updateThemeButton(theme) {
+        if (!this.elements.themeToggle) return;
+        const isLight = theme === 'light';
+        const icon = isLight ? 'fa-sun' : 'fa-moon';
+        const title = isLight ? 'Donker thema' : 'Licht thema';
+        this.elements.themeToggle.innerHTML = `<i class="fas ${icon}"></i>`;
+        this.elements.themeToggle.setAttribute('title', title);
+        this.elements.themeToggle.setAttribute('aria-label', title);
     }
 
     showTestToasts() {

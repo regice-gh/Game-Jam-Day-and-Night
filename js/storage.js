@@ -9,7 +9,8 @@ class GameStorage {
             lastPlayed: null,
             totalGamesPlayed: 0,
             totalWordsGuessed: 0,
-            highScore: 0
+            highScore: 0,
+            theme: 'dark'
         };
 
         this.init();
@@ -276,3 +277,4 @@ class GameStorage {
 }
 
 const gameStorage = new GameStorage();
+window.gameStorage = gameStorage;
