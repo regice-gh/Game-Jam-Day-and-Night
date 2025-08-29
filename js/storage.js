@@ -69,7 +69,6 @@ class GameStorage {
         try {
             localStorage.setItem(this.cookieConsentKey, 'accepted');
             this.hideCookieConsent();
-            console.log('Cookies accepted - game data will be saved');
         } catch (error) {
             console.log('Could not save cookie consent:', error);
         }
@@ -79,7 +78,6 @@ class GameStorage {
         try {
             localStorage.setItem(this.cookieConsentKey, 'declined');
             this.hideCookieConsent();
-            console.log('Cookies declined - game data will not be saved');
         } catch (error) {
             console.log('Could not save cookie decline:', error);
         }
@@ -113,7 +111,6 @@ class GameStorage {
             };
 
             localStorage.setItem(this.gameStateKey, JSON.stringify(stateToSave));
-            console.log('Game state saved successfully');
             return true;
         } catch (error) {
             console.error('Error saving game state:', error);
@@ -148,7 +145,6 @@ class GameStorage {
 
         try {
             localStorage.removeItem(this.gameStateKey);
-            console.log('Game state cleared');
             return true;
         } catch (error) {
             console.error('Error clearing game state:', error);
@@ -170,7 +166,6 @@ class GameStorage {
             };
 
             localStorage.setItem(this.settingsKey, JSON.stringify(settingsToSave));
-            console.log('Settings saved successfully');
             return true;
         } catch (error) {
             console.error('Error saving settings:', error);
@@ -272,8 +267,6 @@ class GameStorage {
             if (data.settings) {
                 this.saveSettings(data.settings);
             }
-
-            console.log('Data imported successfully');
             return true;
         } catch (error) {
             console.error('Error importing data:', error);

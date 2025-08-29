@@ -6,8 +6,6 @@ class InputHandler {
     }
 
     init() {
-        console.log('⌨️ Input Handler initialized!');
-
         this.setupKeyboardListeners();
 
         this.setupTouchSupport();
@@ -31,8 +29,6 @@ class InputHandler {
                 event.preventDefault();
             }
         });
-
-        console.log('Keyboard listeners set up');
     }
 
     handleKeyDown(event) {
@@ -112,7 +108,6 @@ class InputHandler {
         const success = window.wordPuzzleGame.guessLetter(letter);
 
         if (success) {
-            console.log(`Letter ${letter} input processed`);
             this.addKeyboardFeedback(letter);
         } else {
             console.log(`Letter ${letter} input rejected (already guessed or game not active)`);
@@ -151,8 +146,6 @@ class InputHandler {
         if (window.gameUI) {
             window.gameUI.hideMessage();
         }
-
-        console.log('Escape pressed - closing modals');
     }
 
     handleSpaceKey() {
@@ -226,7 +219,6 @@ Doel: Raad het Nederlandse woord voordat je levens op zijn!
 
         if (this.isMobileDevice()) {
             document.body.classList.add('mobile-device');
-            console.log('Mobile device detected - touch support enabled');
         }
     }
 
@@ -252,12 +244,10 @@ Doel: Raad het Nederlandse woord voordat je levens op zijn!
 
     startListening() {
         this.isListening = true;
-        console.log('Input handler is now listening for events');
     }
 
     stopListening() {
         this.isListening = false;
-        console.log('Input handler stopped listening');
     }
 
     pauseInput() {
@@ -348,6 +338,4 @@ let inputHandler;
 document.addEventListener('DOMContentLoaded', function () {
     inputHandler = new InputHandler();
     window.inputHandler = inputHandler;
-
-    console.log('🎮 All game systems initialized and ready!');
 });

@@ -10,7 +10,7 @@ class WordPuzzleGame {
             'GROOT', 'KLEIN', 'MOOI', 'LELIJK', 'NIEUW',
             'WINTER', 'LENTE', 'ZOMER', 'HERFST', 'SNEEUW',
             'BLOEM', 'BOOM', 'GRAS', 'VOGEL', 'HOND',
-            'COMPUTER', 'TELEFOON', 'INTERNET', 'WEBSITE', 'EMAIL'  
+            'COMPUTER', 'TELEFOON', 'INTERNET', 'WEBSITE', 'EMAIL'
         ];
         this.HardWordList = [
             'KETTINGSAW', 'VERDOVENDE', 'ONDERBROEK', 'AFSPRAAK', 'VERANTWOORD',
@@ -41,7 +41,6 @@ class WordPuzzleGame {
     }
 
     init() {
-        console.log('🎮 Word Puzzle Game initialized!');
         this.loadSettings();
         this.loadSounds();
         this.startNewGame();
@@ -60,7 +59,6 @@ class WordPuzzleGame {
                 this.sounds[type] = new Audio(path);
                 this.sounds[type].preload = 'auto';
                 this.sounds[type].volume = type === 'gameOver' ? 1.0 : 0.5;
-                console.log(`✅ Sound loaded: ${type}`);
             } catch (error) {
                 console.warn(`❌ Failed to load sound: ${type}`, error);
             }
@@ -89,7 +87,7 @@ class WordPuzzleGame {
         this.streak = 0;
         this.hintsUsed = 0;
 
-        console.log(`🎯 New words: ${this.currentWords.join(', ')}`);
+        console.log(`New words: ${this.currentWords.join(', ')}`);
 
         if (window.gameUI) {
             window.gameUI.updateDisplay();

@@ -164,8 +164,6 @@ class GameUI {
     }
 
     init() {
-        console.log('🎨 UI Manager initialized!');
-
         this.cacheElements();
 
         this.setupEventListeners();
@@ -198,8 +196,6 @@ class GameUI {
             messageText: document.getElementById('messageText'),
             messageBtn: document.getElementById('messageBtn')
         };
-
-        console.log('DOM elements cached');
     }
 
     setupEventListeners() {
@@ -242,8 +238,6 @@ class GameUI {
                 this.showTestToasts();
             });
         }
-
-        console.log('Event listeners set up');
     }
 
     initializeKeyboard() {
@@ -267,8 +261,6 @@ class GameUI {
 
             this.elements.virtualKeyboard.appendChild(keyElement);
         });
-
-        console.log('Virtual keyboard initialized');
     }
 
     handleLetterClick(letter) {
